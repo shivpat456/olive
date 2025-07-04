@@ -9,18 +9,18 @@ export async function POST(req: NextRequest) {
     const { userInput, tableName, url, key } = await req.json();
     const supabase = createClient(url, key);
 
-    // Dynamically get schema and sample data
+   
     const { data: rows, error } = await supabase.from(tableName).select("*").limit(3);
     if (error || !rows || rows.length === 0) {
       return NextResponse.json({ error: "No data found in table." }, { status: 500 });
     }
-    // Build schema string dynamically
+    
     const schema = Object.entries(rows[0])
       .map(([col, val]) => `${col}: ${typeof val}`)
       .join(", ");
     const sampleData = JSON.stringify(rows, null, 2);
 
-    // Dynamic prompt: No hardcoded columns or business logic
+    
     const prompt = `
 You are an expert Postgres SQL generator.
 
@@ -44,7 +44,7 @@ Instructions:
 - Do not include explanations, comments, or markdown/code block formatting.
 `;
 
-    // Get SQL from OpenAI
+    
     let sql = "";
     try {
       const completion = await openai.chat.completions.create({
@@ -59,13 +59,12 @@ Instructions:
       return NextResponse.json({ error: "OpenAI error: " + openaiErr.message }, { status: 500 });
     }
 
-    // Only allow SELECT queries for safety
+   
     if (!sql.toLowerCase().startsWith("select")) {
       return NextResponse.json({ error: "Only SELECT queries are supported." }, { status: 400 });
     }
 
-    // (Optional) You can parse and run the SQL using Supabase's query builder if you want to execute it.
-    // For now, just return the generated SQL.
+   
     return NextResponse.json({ sql });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
